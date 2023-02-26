@@ -18,3 +18,5 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC LOG_LEVEL=3)
 find_package(corgi-test)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE corgi-logger corgi-test)
+
+add_test(NAME ${PROJECT_NAME} COMMAND ${PROJECT_NAME}) 
