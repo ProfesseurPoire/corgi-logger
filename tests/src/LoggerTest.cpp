@@ -13,9 +13,8 @@ int main()
 
 class LoggerTest : public Test
 {
-    public:
-
-    private:
+public:
+private:
 };
 
 TEST_F(LoggerTest, write_log_in_default_file)
@@ -30,7 +29,7 @@ TEST_F(LoggerTest, write_log_in_default_file)
 
     std::string line;
     std::getline(file, line);
-    std::string message("Info : {default} : \"Hi\" at (LoggerTest.cpp::run 25) ");
+    std::string message("[default] [Info] [LoggerTest.cpp::run:24] : Hi");
     assert_that(line, equals(message));
 }
 
@@ -46,6 +45,6 @@ TEST_F(LoggerTest, write_log_in_another_folder)
 
     std::string line;
     std::getline(file, line);
-    std::string message("Info : {default} : \"10\" at (LoggerTest.cpp::run 41) ");
+    std::string message("[default] [Info] [LoggerTest.cpp::run:40] : 10");
     assert_that(line, equals(message));
 }

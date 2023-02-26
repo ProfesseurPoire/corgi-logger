@@ -1,0 +1,42 @@
+name: Compiling and checking tests
+
+on:
+  push:
+    branches-ignore : 
+      - main
+   
+jobs:
+  ubuntu-build:
+    name    : Ubuntu Build
+    runs-on : ubuntu-latest
+    steps:
+      - name : Checkout code
+        uses : actions/checkout@v2
+
+      - name : Install Dependencies
+        run  : |
+                sudo apt-get update 
+                sudo apt-get install cppcheck 
+                git clone https://github.com/ProfesseurPoire/corgi-test -b develop
+                cd corgi-test
+                mkdir build
+                cd build
+                cmake .. -DCMAKE_BUILD_TYPE=DEBUG
+                sudo make install 
+
+      - name : Run CMake
+        run  : |
+               export CC=gcc-10 
+               export CXX=g++-10 
+               mkdir build  
+               cd build 
+               cmake .. -DCMAKE_BUILD_TYPE=Debug 
+
+      - name : Build Project
+        run  : cd build  && make 
+
+      - name : Run Cppcheck
+        run  : cppcheck --force .
+
+      - name : Run CTest
+        run  : cd build && ctest --verbose
