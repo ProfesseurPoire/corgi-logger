@@ -12,6 +12,13 @@ add_library(${PROJECT_NAME} "")
 add_subdirectory(src)
 add_subdirectory(include/corgi/logger)
 
+if(MSVC)
+target_compile_options(${PROJECT_NAME} PRIVATE -W4 -WX)
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+else()
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Werror)
+endif()
+
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 
 set(install_folder lib${arch_suffix}/${PROJECT_NAME}-${PROJECT_VERSION}/)

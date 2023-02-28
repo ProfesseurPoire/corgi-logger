@@ -1,5 +1,6 @@
 #include <corgi/logger/log.h>
 
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -7,20 +8,16 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
 // Only here so I can have colors on windows
-#ifdef _WIN32
 #    include <windows.h>
-#endif    // _WIN32
-#include <ctime>
-
-#ifdef _WIN32
 // Yoloed that, probably won't work on linux
 // Helps with the stack trace
 #    include <DbgHelp.h>
 #    pragma comment(lib, "dbghelp.lib")
 #endif
 
-static void set_console_color(int color)
+static void set_console_color(unsigned short color)
 {
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -43,10 +40,13 @@ struct Channel
         {logger::LogLevel::FatalError, std::vector<std::string>()}};
 };
 
-static const std::map<corgi::logger::LogLevel, int> color_code {
-    {logger::LogLevel::Info, 11},  {logger::LogLevel::Trace, 10},
-    {logger::LogLevel::Debug, 13}, {logger::LogLevel::Warning, 14},
-    {logger::LogLevel::Error, 12}, {logger::LogLevel::FatalError, 12}};
+static const std::map<corgi::logger::LogLevel, unsigned short> color_code {
+    {logger::LogLevel::Info, unsigned short(11)},
+    {logger::LogLevel::Trace, unsigned short(10)},
+    {logger::LogLevel::Debug, unsigned short(13)},
+    {logger::LogLevel::Warning, unsigned short(14)},
+    {logger::LogLevel::Error, unsigned short(12)},
+    {logger::LogLevel::FatalError, unsigned short(12)}};
 
 static std::map<std::string, Channel> channels_;
 static bool                           show_time_ {true};
@@ -58,6 +58,50 @@ static std::map<std::string, std::ofstream> files_;
 
 // Set that to false if you don't want the log operations to write
 // inside a file
+
+namespace
+{
+auto get_time() -> std::string
+{
+    auto  time   = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    auto* gmtime = std::gmtime(&time);
+
+    std::string minutes = std::to_string(gmtime->tm_min);
+    if(gmtime->tm_min < 10)
+        minutes = "0" + minutes;
+
+    std::string seconds = std::to_string(gmtime->tm_sec);
+    if(gmtime->tm_sec < 10)
+        seconds = "0" + seconds;
+
+    return (std::to_string(gmtime->tm_hour) + ":" + minutes + ":" + seconds);
+}
+
+auto filename(const std::string& path) -> std::string
+{
+    for(size_t i = path.size() - 1; i > 0; --i)
+    {
+        if(path[i] == '/' || path[i] == '\\')
+        {
+            return path.substr(
+                i + 1, std::string::npos);    //npos means until the end of the string
+        }
+    }
+    return "";
+}
+
+auto build_string(corgi::logger::LogLevel log_level,
+                  int                     line,
+                  const std::string&      file,
+                  const std::string&      func,
+                  const std::string&      text,
+                  const std::string&      channel) -> std::string
+{
+    return "[" + channel + "]" + " [" + log_level_str.at(log_level) + "] [" +
+           filename(file) + "::" + func + ":" + std::to_string(line) + "] : " + text +
+           "\n";
+}
+}    // namespace
 
 void logger::toggle_file_output(const bool value)
 {
@@ -79,58 +123,10 @@ void logger::set_folder(const std::string& path)
     output_folder_ = path;
 }
 
-static std::string filename(const std::string& path)
-{
-    for(size_t i = path.size() - 1; i > 0; --i)
-    {
-        if(path[i] == '/' || path[i] == '\\')
-        {
-            return path.substr(
-                i + 1, std::string::npos);    //npos means until the end of the string
-        }
-    }
-    return "";
-}
-
 void logger::close_files()
 {
     for(auto& file : files_)
-    {
         file.second.close();
-    }
-}
-
-static std::string build_string(corgi::logger::LogLevel log_level,
-                                int                     line,
-                                const std::string&      file,
-                                const std::string&      func,
-                                const std::string&      text,
-                                const std::string&      channel)
-{
-    return "[" + channel + "]" + " [" + log_level_str.at(log_level) + "] [" +
-           filename(file) + "::" + func + ":" + std::to_string(line) + "] : " + text +
-           "\n";
-}
-
-static std::string get_time()
-{
-    // Probably should make a function for that
-    auto time   = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    auto gmtime = std::gmtime(&time);
-
-    std::string minutes = std::to_string(gmtime->tm_min);
-    if(gmtime->tm_min < 10)
-    {
-        minutes = "0" + minutes;
-    }
-
-    std::string seconds = std::to_string(gmtime->tm_sec);
-    if(gmtime->tm_sec < 10)
-    {
-        seconds = "0" + seconds;
-    }
-
-    return (std::to_string(gmtime->tm_hour) + ":" + minutes + ":" + seconds);
 }
 
 void logger::details::write_log(const std::string& obj,
@@ -145,14 +141,10 @@ void logger::details::write_log(const std::string& obj,
     set_console_color(color_code.at(log_level));
 
     if(show_time_)
-    {
         str = "[" + get_time() + "] " + str;
-    }
 
     if(write_logs_in_console_)
-    {
         std::cout << str << std::flush;
-    }
 
     channels_[channel].logs.at(log_level).push_back(str);
 
@@ -192,16 +184,16 @@ void logger::details::write_log(const std::string& obj,
         symbol->MaxNameLen   = 200;
         symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
         DWORD            displacement;
-        IMAGEHLP_LINE64* line = (IMAGEHLP_LINE64*)malloc(sizeof(IMAGEHLP_LINE64));
-        line->SizeOfStruct    = sizeof(IMAGEHLP_LINE64);
+        IMAGEHLP_LINE64* l = (IMAGEHLP_LINE64*)malloc(sizeof(IMAGEHLP_LINE64));
+        l->SizeOfStruct    = sizeof(IMAGEHLP_LINE64);
         for(int i = 0; i < numberOfFrames; i++)
         {
             DWORD64 address = (DWORD64)(stack[i]);
             SymFromAddr(process, address, NULL, symbol);
-            if(SymGetLineFromAddr64(process, address, &displacement, line))
+            if(SymGetLineFromAddr64(process, address, &displacement, l))
             {
                 printf("\tat %s in %s: line: %lu: address: 0x%0X\n", symbol->Name,
-                       line->FileName, line->LineNumber,
+                       l->FileName, l->LineNumber,
                        static_cast<unsigned int>(symbol->Address));
             }
             else
