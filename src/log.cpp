@@ -41,12 +41,12 @@ struct Channel
 };
 
 static const std::map<corgi::logger::LogLevel, unsigned short> color_code {
-    {logger::LogLevel::Info, unsigned short(11)},
-    {logger::LogLevel::Trace, unsigned short(10)},
-    {logger::LogLevel::Debug, unsigned short(13)},
-    {logger::LogLevel::Warning, unsigned short(14)},
-    {logger::LogLevel::Error, unsigned short(12)},
-    {logger::LogLevel::FatalError, unsigned short(12)}};
+    {logger::LogLevel::Info, (unsigned short)11},
+    {logger::LogLevel::Trace, (unsigned short)10},
+    {logger::LogLevel::Debug, (unsigned short)13},
+    {logger::LogLevel::Warning, (unsigned short)14},
+    {logger::LogLevel::Error, (unsigned short)12},
+    {logger::LogLevel::FatalError, (unsigned short)12}};
 
 static std::map<std::string, Channel> channels_;
 static bool                           show_time_ {true};
