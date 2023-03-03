@@ -29,16 +29,12 @@ target_include_directories(
     $<INSTALL_INTERFACE:include>
 )
 
-#####################################################
 # Installing the library and exporting the targets
-#####################################################
 
-# Targets we want to export and where
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
     LIBRARY     DESTINATION lib
     RUNTIME     DESTINATION bin)
 
-# We move the include files to their destination 
 install(DIRECTORY include DESTINATION ./)
 
 install(
