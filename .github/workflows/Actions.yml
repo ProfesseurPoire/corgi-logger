@@ -11,7 +11,7 @@ jobs:
     runs-on : ubuntu-latest
     steps:
       - name : Checkout code
-        uses : actions/checkout@v2
+        uses : actions/checkout@v3
 
       - name : Install Dependencies
         run  : |
@@ -36,7 +36,65 @@ jobs:
         run  : cd build  && make 
 
       - name : Run Cppcheck
-        run  : cppcheck --force .
+        run  : cppcheck --force ./ -ibuild/
+
+      - name : Run CTest
+        run  : cd build && ctest --verbose
+  windows-build:
+    name : Windows Build
+    runs-on : windows-latest
+    steps : 
+      - name : Checkout code
+        uses : actions/checkout@v3
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name : Install Dependencies
+        run  : |
+                git clone https://github.com/ProfesseurPoire/corgi-test -b develop
+                cd corgi-test
+                mkdir build
+                cd build
+                cmake .. -DCMAKE_BUILD_TYPE=DEBUG
+                msbuild INSTALL.vcxproj 
+
+      - name : Run CMake
+        run  : |
+                mkdir build  
+                cd build 
+                cmake .. 
+
+      - name : Build Project
+        run  : cd build  && msbuild ALL_BUILD.vcxproj /p:Configuration=Debug
+
+      - name : Run CTest
+        run  : cd build && ctest -C Debug --verbose
+
+  macos-build:
+    name    : MacOS Build
+    runs-on : macos-latest
+    steps:
+      - name : Checkout code
+        uses : actions/checkout@v3
+
+      - name : Install Dependencies
+        run  : |
+                git clone https://github.com/ProfesseurPoire/corgi-test -b develop
+                cd corgi-test
+                mkdir build
+                cd build
+                cmake .. -DCMAKE_BUILD_TYPE=DEBUG
+                sudo make install 
+
+      - name : Run CMake
+        run  : |
+               mkdir build  
+               cd build 
+               cmake .. -DCMAKE_BUILD_TYPE=Debug 
+
+      - name : Build Project
+        run  : cd build  && make 
 
       - name : Run CTest
         run  : cd build && ctest --verbose
